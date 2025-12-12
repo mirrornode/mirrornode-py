@@ -1,0 +1,129 @@
+version: 1
+updated_at: 2025-12-11T00:00:00Z
+
+root:
+  codex:
+    - id: "codex-I"
+      name: "Codex I"
+      status: "active"
+      description: "Primary codex for MIRRORNODE specifications and 
+symbolic ground."
+      tags: ["codex", "core"]
+  engines:
+    - id: "fusion-engine"
+      name: "Fusion Engine"
+      status: "planned"
+      description: "Engine for combining symbolic and technical 
+structures."
+      tags: ["engine"]
+  languages:
+    - id: "praesoetic"
+      name: "Praesoetic"
+      status: "active"
+      description: "Symbolic language layer."
+      tags: ["language"]
+    - id: "numeraethe"
+      name: "Numeraethe"
+      status: "planned"
+      description: "Numeric/structural language layer."
+      tags: ["language"]
+  glyph_index:
+    - id: "glyph-core"
+      name: "Core Glyph Index"
+      status: "planned"
+      description: "Index of primary glyphs across Codex and Engines."
+      tags: ["glyph", "index"]
+  token_engine:
+    id: "token-engine"
+    name: "Token Engine"
+    status: "planned"
+    description: "Token accounting, mapping, and resonance tracking."
+    tags: ["engine", "token"]
+
+infra:
+  github:
+    org: "mirrornode"
+    repos:
+      - id: "keystone-143"
+        name: "keystone-143"
+        role: "core"
+        status: "active"
+        description: "Primary monorepo containing Hybrid Map and core 
+code."
+  vercel:
+    projects: []
+  figma:
+    files: []
+  trello:
+    boards: []
+
+ai_network:
+  agents:
+    - id: "rio"
+      name: "RIO"
+      role: "orchestrator"
+      status: "active"
+    - id: "merlin"
+      name: "Merlin"
+      role: "dispatcher"
+      status: "active"
+    - id: "claude"
+      name: "Claude"
+      role: "symbolic/technical reasoning"
+      status: "available"
+    - id: "grok"
+      name: "Grok"
+      role: "visual/structural"
+      status: "available"
+    - id: "thea"
+      name: "Thea"
+      role: "design/systemization"
+      status: "available"
+    - id: "perplexity"
+      name: "Perplexity"
+      role: "research/search"
+      status: "active"
+
+external_modules:
+  story_game:
+    id: "story-game"
+    status: "planned"
+    description: "Arvid story engine."
+  smi_console:
+    id: "smi-console"
+    status: "planned"
+    description: "Self-model interface console."
+  hud:
+    id: "hud"
+    status: "planned"
+    description: "Heads-up display / overlay."
+
+active_tasks:
+  - id: "task-hm-schema-v1"
+    title: "Define v1 Hybrid Map persistence schema"
+    created_at: "2025-12-11T00:00:00Z"
+    status: "in_progress"
+    owner: "merlin"
+    priority: "high"
+    context:
+      systems: ["MIRRORNODE", "Codex I"]
+      constraints:
+        - "monorepo-friendly"
+        - "no external DB"
+        - "Merlin + Perplexity only"
+    steps:
+      - "Specify YAML structure for all Hybrid Map sections."
+      - "Define task model for ACTIVE_TASKS and COMPLETED_TASKS."
+      - "Provide initial populated instance."
+    interfaces:
+      primary: ["Merlin", "Perplexity"]
+    notes:
+      - "Initial v1 definition created."
+
+completed_tasks:
+  - id: "task-root-bootstrap"
+    title: "Bootstrap ROOT section entries"
+    completed_at: "2025-12-01T12:00:00Z"
+    owner: "merlin"
+    summary: "Initial Codex, Engine, Language, Glyph Index, and Token 
+Engine entries established for MIRRORNODE."
