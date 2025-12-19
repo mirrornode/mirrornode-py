@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MIRRORNODE HUD</title>
+  <style>
+    body { font-family: ui-monospace, Menlo, monospace; margin: 16px; }
+    #status { margin-bottom: 12px; }
+    #log { white-space: pre-wrap; border: 1px solid #ddd; padding: 12px; 
+height: 55vh; overflow: auto; }
+    .ok { color: #0a7; } .bad { color: #c33; }
+  </style>
+</head>
+<body>
+  <div id="status">Status: <span id="state" 
+class="bad">disconnected</span></div>
+  <div id="log"></div>
+
+  <script>
+    const log = document.getElementById("log");
+    const state = document.getElementById("state");
+
+    function line(s) {
+      log.textContent += s + "\n";
+      log.scrollTop = log.scrollHeight;
+    }
+
+    const wsUrl = `ws://${location.host}/stream`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      state.textContent = "connected";
+      state.className = "ok";
+      ws.send("hi");
+      line(`WS open → ${wsUrl}`);
+    };
+
+    ws.onmessage = (e) => line(`EVENT ← ${e.data}`);
+
+    ws.onclose = () => {
+      state.textContent = "closed";
+      state.className = "bad";
+      line("WS closed");
+    };
+
+    ws.onerror = (e) => {
+      state.textContent = "error";
+      state.className = "bad";
+      line("WS error");
+      console.log(e);
+    };
+  </script>
+</body>
+</html>
+
