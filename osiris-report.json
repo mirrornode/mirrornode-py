@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-01-31T11:21:55.948347Z",
+  "severity": 0,
+  "findings": [
+    {
+      "name": "Target exists",
+      "pass": true,
+      "category": "preflight"
+    },
+    {
+      "name": "Target is directory",
+      "pass": true,
+      "category": "preflight"
+    },
+    {
+      "name": "README present",
+      "pass": true,
+      "category": "structure"
+    },
+    {
+      "name": "pyproject.toml present",
+      "pass": true,
+      "category": "structure"
+    },
+    {
+      "name": ".gitignore present",
+      "pass": true,
+      "category": "structure"
+    },
+    {
+      "name": "Python files detected",
+      "pass": true,
+      "value": 2146,
+      "category": "metrics"
+    },
+    {
+      "name": "Test directory present",
+      "pass": true,
+      "category": "metrics"
+    }
+  ]
+}
