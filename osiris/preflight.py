@@ -623,3 +623,28 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# ---- OSIRIS EXPORT (forced, v1) ----
+from pathlib import Path
+
+def run_preflight(target: Path) -> dict:
+    checks = []
+
+    checks.append({
+        "name": "Target exists",
+        "pass": target.exists(),
+        "category": "preflight",
+    })
+
+    checks.append({
+        "name": "Target is directory",
+        "pass": target.is_dir(),
+        "category": "preflight",
+    })
+
+    passed = all(c["pass"] for c in checks)
+
+    return {
+        "pass": passed,
+        "checks": checks,
+    }
