@@ -64,13 +64,13 @@ CLIENTS: Set[WebSocket] = set()
 # ---------------------------------------------------------------------------
 def _load_agents() -> List[Dict[str, Any]]:
     """Load agent definitions from bundled canon/agents directory."""
-    agents_dir = pathlib.Path(__file__).parent.parent / "canon" / "agents"
+    agents_dir = pathlib.Path(__file__).parent.parent / "agents"
     if not agents_dir.exists():
         return []
     agents = []
-    for f in sorted(agents_dir.glob("*.json")):
+    for f in sorted(agents_dir.glob("*.md")):
         try:
-            agents.append(json.loads(f.read_text()))
+            agents.append({"name": f.stem, "file": f.name})
         except Exception:
             pass
     return agents
