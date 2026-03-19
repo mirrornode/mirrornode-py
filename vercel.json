@@ -12,6 +12,7 @@
       "dest": "api/index.py"
     }
   ],
+  "regions": ["iad1"],
   "env": {
     "MIRRORNODE_ENV": "production"
   }
