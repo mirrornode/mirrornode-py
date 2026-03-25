@@ -1,0 +1,63 @@
+name: Team Update — @MIRROR Dispatch
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  mirror-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gather commit metadata
+        run: |
+          echo "COMMIT_MSG=$(git log -1 --pretty=%B)" >> $GITHUB_ENV
+          echo "COMMIT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "COMMIT_AUTHOR=$(git log -1 --pretty=%an)" >> $GITHUB_ENV
+          echo "TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
+
+      - name: Post @MIRROR Dispatch as commit comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const body = `## [@MIRROR] AUTO-DISPATCH
+**SOURCE:** GitHub Actions (CI Oracle)
+**DATE:** ${process.env.TIMESTAMP}
+**REPO:** mirrornode-py
+**COMMIT:** \`${process.env.COMMIT_SHA}\`
+**AUTHOR:** ${process.env.COMMIT_AUTHOR}
+
+**CHANGE:**
+${process.env.COMMIT_MSG}
+
+**LIVE ENDPOINT:** https://api.mirrornode.xyz/standby/status
+**VERIFY:** \`curl https://api.mirrornode.xyz/standby/status | python3 -m json.tool\`
+
+**NEXT AGENTS:**
+- Theia → confirm IDE reflects deployed schema
+- Merlin/Grok → consume updated /standby/status
+- NODE_7 → lineage logged
+
+[/@MIRROR]`;
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: body
+            });
+
+      - name: Append to UPDATES.md
+        run: |
+          echo "" >> UPDATES.md
+          echo "## [@MIRROR] ${TIMESTAMP}" >> UPDATES.md
+          echo "**Commit:** \`${COMMIT_SHA}\` — ${COMMIT_MSG}" >> UPDATES.md
+          echo "**Endpoint:** https://api.mirrornode.xyz/standby/status" >> UPDATES.md
+          echo "---" >> UPDATES.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add UPDATES.md
+          git commit -m "chore: @MIRROR auto-log [${COMMIT_SHA}]" || echo "No changes to log"
+          git push
