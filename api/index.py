@@ -36,7 +36,14 @@ class HermesEnvelope(BaseModel):
     kind: str
     payload: Dict[str, Any]
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-
+class StandbyRequest(BaseModel):
+    node: str
+    reason: Optional[str] = None
+    dry_run: bool = Field(
+        default=False,
+        description="If true, simulate standby without state 
+change",
+    )
 # --- State ---
 EVENTS: List[MirrorNodeEvent] = []
 CLIENTS: Dict[WebSocket, Dict[str, Any]] = {} # {ws: {node_id, capabilities}}
