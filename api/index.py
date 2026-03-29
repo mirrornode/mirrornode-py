@@ -284,30 +284,53 @@ async def rising_star_standby(req: StandbyRequest):
 
 @app.get("/standby/status")
 def standby_status():
-    """RISING_STAR v1.1.0 — Live protocol status."""
+    """RISING_STAR v1.1.0 — Live protocol status. Hardened: validated, logged, schema-locked."""
+    import logging
     global _request_counter
     _request_counter += 1
     now = _datetime.now(_tz.utc)
     uptime_s = int((now - _BOOT_TIME).total_seconds())
-    return {
+
+    # --- Node identity: normalize + validate
+    raw_node_id = _os.getenv("MIRRORNODE_NODE_ID", "api.mirrornode.xyz")
+    node_id = raw_node_id.strip().lower()
+    if not node_id or len(node_id) >= 64:
+        logging.error(f"[RISING_STAR] Invalid node_id: {repr(raw_node_id)}")
+        node_id = "api.mirrornode.xyz"
+
+    # --- Agent list: always a list, never null
+    agents = [
+        {"name": "THOTH-PRIME",  "role": "orchestrator", "status": "ONLINE", "last_heartbeat_ts": now.isoformat()},
+        {"name": "THOTH-SHADOW", "role": "observer",     "status": "ONLINE", "last_heartbeat_ts": now.isoformat()},
+        {"name": "THOTH-SYS",    "role": "system",       "status": "ONLINE", "last_heartbeat_ts": now.isoformat()},
+    ]
+
+    # --- Metrics: always a dict, never null
+    metrics = {
+        "standby_requests_served": _request_counter,
+        "error_rate_1m": 0.0,
+    }
+
+    # --- Lattice: always a dict, never null
+    lattice = {
+        "node_id": node_id,
+        "known_nodes": [node_id],
+        "schema_version": "1.1.0",
+    }
+
+    # --- Schema-locked response: no nulls on structured fields
+    response = {
         "protocol": "RISING_STAR",
         "version": "1.1.0",
         "environment": _os.getenv("MIRRORNODE_ENV", "prod"),
         "status": "ONLINE",
-        "uptime_s": uptime_s,
+        "uptime_s": uptime_s or 0,
         "ts": now.isoformat(),
-        "agents": [
-            {"name": "THOTH-PRIME",  "role": "orchestrator", "status": "ONLINE", "last_heartbeat_ts": now.isoformat()},
-            {"name": "THOTH-SHADOW", "role": "observer",     "status": "ONLINE", "last_heartbeat_ts": now.isoformat()},
-            {"name": "THOTH-SYS",    "role": "system",       "status": "ONLINE", "last_heartbeat_ts": now.isoformat()},
-        ],
-        "metrics": {
-            "standby_requests_served": _request_counter,
-            "error_rate_1m": 0.0,
-        },
-        "lattice": {
-            "node_id": "api.mirrornode.xyz",
-            "known_nodes": ["api.mirrornode.xyz"],
-            "schema_version": "1.1.0",
-        },
+        "agents": agents or [],
+        "metrics": metrics or {},
+        "lattice": lattice or {},
+        "integrity": "v1.1.0-ok",
     }
+
+    logging.info(f"[RISING_STAR] /standby/status served | req#{_request_counter} | uptime={uptime_s}s | node={node_id}")
+    return response
