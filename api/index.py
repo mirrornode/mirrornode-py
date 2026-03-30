@@ -9,7 +9,8 @@ import pathlib
 import re
 import uuid
 from datetime import datetime, timezone, timedelta
-from enum import Enum
+from fastapi.responses import JSONResponsefrom enum 
+import Enum
 from typing import Any, Dict, List, Optional, Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -114,9 +115,51 @@ async def standby(req: StandbyRequest):
 
 @app.get("/standby/status")
 def standby_status():
-    """Return current standby state for all nodes."""
-    return {"ok": True, "standby": _STANDBY}
+    """[@MIRROR] Bastet coherence v0.6.0 — standby status 
+with coherence scoring."""
+    try:
+        ts = datetime.now(timezone.utc).isoformat()
 
+        # Per-node coherence scores over the recent window
+        node_scores = {
+            node: _bastet_coherence_score(node)
+            for node in _STANDBY.keys()
+        }
+
+        # Simple aggregate: max score across nodes (0.0 if 
+none)
+        aggregate_score = max(node_scores.values()) if 
+node_scores else 0.0
+
+        return {
+            "status": "ok",
+            "version": "0.6.0",
+            "ts": ts,
+            "standby": _STANDBY,
+            "_bastet_coherence": {
+                "engine": "bastet",
+                "version": "0.6.0",
+                "score": float(aggregate_score),
+                "node_scores": node_scores,
+            },
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "version": "0.6.0",
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "standby": _STANDBY,
+                "_bastet_coherence": {
+                    "engine": "bastet",
+                    "version": "0.6.0",
+                    "score": 0.0,
+                    "node_scores": {},
+                },
+                "error": str(e),
+            },
+        )
 @app.websocket("/stream")
 async def stream(websocket: WebSocket):
     await websocket.accept()
