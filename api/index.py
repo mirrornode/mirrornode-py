@@ -160,6 +160,32 @@ node_scores else 0.0
                 "error": str(e),
             },
         )
+# --- Merlin Handoff ---
+class MerlinHandoff(BaseModel):
+    """[@MIRROR] Structured handoff payload targeting Merlin."""
+    from_node: str
+    payload: Dict[str, Any]
+    reason: Optional[str] = None
+    trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+@app.post("/handoff/merlin")
+async def handoff_to_merlin(req: MerlinHandoff):
+    """[@MIRROR] Route a structured handoff event to Merlin."""
+    evt = MirrorNodeEvent(
+        node="merlin",
+        kind="HANDOFF",
+        payload={
+            "from_node": req.from_node,
+            "reason": req.reason,
+            "trace_id": req.trace_id,
+            **req.payload,
+        },
+        shadow_signal=True,
+    )
+    EVENTS.append(evt)
+    await _broadcast(evt)
+    return {"ok": True, "trace_id": req.trace_id, "routed_to": "merlin"}
+
 @app.websocket("/stream")
 async def stream(websocket: WebSocket):
     await websocket.accept()
