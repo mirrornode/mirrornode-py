@@ -1,14 +1,11 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb"
-      }
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30,
+      "memory": 1024
     }
-  ],
+  },
   "routes": [
     {
       "src": "/(.*)",
@@ -18,6 +15,5 @@
   "regions": ["iad1"],
   "env": {
     "MIRRORNODE_ENV": "production"
-  },
-  "installCommand": "pip install -r requirements.txt"
+  }
 }
