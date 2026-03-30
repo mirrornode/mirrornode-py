@@ -2,12 +2,13 @@
 Exposes the FastAPI bridge app to @vercel/python.
 """
 from __future__ import annotations
+import asyncio
 import json
 import os
 import pathlib
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -15,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 # --- App ---
-app = FastAPI(title="MirrorNode Bridge", version="0.5.0")
+app = FastAPI(title="MirrorNode Bridge", version="0.6.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 # --- Models ---
@@ -36,37 +37,58 @@ class HermesEnvelope(BaseModel):
     kind: str
     payload: Dict[str, Any]
     trace_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
 class StandbyRequest(BaseModel):
     node: str
     reason: Optional[str] = None
     dry_run: bool = Field(
         default=False,
-        description="If true, simulate standby without state 
-change",
+        description="If true, simulate standby without state change",
     )
+
 # --- State ---
 EVENTS: List[MirrorNodeEvent] = []
-CLIENTS: Dict[WebSocket, Dict[str, Any]] = {} # {ws: {node_id, capabilities}}
+CLIENTS: Dict[WebSocket, Dict[str, Any]] = {}  # {ws: {node_id, capabilities}}
+_STANDBY: Dict[str, Dict[str, Any]] = {}  # {node: {reason, dry_run, last_updated}}
+_STANDBY_LOCK = asyncio.Lock()
+
+# --- Bastet Coherence Scoring ---
+def _bastet_coherence_score(node: str, window_minutes: int = 10) -> float:
+    """[@MIRROR] Eve/Bastet: compute shadow_signal density for node over window.
+    Returns a 0.0-1.0 float: ratio of shadow_signal events to total events in window.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=window_minutes)
+    window_events = [
+        e for e in EVENTS
+        if e.node == node and datetime.fromisoformat(e.ts) >= cutoff
+    ]
+    if not window_events:
+        return 0.0
+    shadow_count = sum(1 for e in window_events if e.shadow_signal)
+    return round(shadow_count / len(window_events), 4)
 
 async def _broadcast(evt: MirrorNodeEvent):
     dead = []
     for ws in CLIENTS:
         try:
             await ws.send_json(evt.model_dump())
-        except: dead.append(ws)
-    for ws in dead: CLIENTS.pop(ws, None)
+        except:
+            dead.append(ws)
+    for ws in dead:
+        CLIENTS.pop(ws, None)
 
+# --- Routes ---
 @app.get("/health")
 def health():
     return {"status": "ok", "events": len(EVENTS), "clients": len(CLIENTS)}
 
 @app.get("/events/recent")
 def events_recent(limit: int = 20):
-    # [@MIRROR] Eve/Bastet hook: annotate recent events with coherence
+    # [@MIRROR] Eve/Bastet hook: annotate recent events with live coherence score
     events = EVENTS[-limit:]
     for e in events:
         if e.shadow_signal:
-            e.payload["_bastet_coherence"] = 0.42 # Example annotation
+            e.payload["_bastet_coherence"] = _bastet_coherence_score(e.node)
     return {"ok": True, "events": events}
 
 @app.post("/events")
@@ -74,6 +96,26 @@ async def ingest_event(evt: MirrorNodeEvent):
     EVENTS.append(evt)
     await _broadcast(evt)
     return {"ok": True}
+
+@app.post("/standby")
+async def standby(req: StandbyRequest):
+    """Put a node into standby. If dry_run=True, simulate without mutating state."""
+    entry = {
+        "node": req.node,
+        "reason": req.reason,
+        "dry_run": req.dry_run,
+        "last_updated": datetime.now(timezone.utc).isoformat(),
+    }
+    if req.dry_run:
+        return {"ok": True, "simulated": True, "entry": entry}
+    async with _STANDBY_LOCK:
+        _STANDBY[req.node] = entry
+    return {"ok": True, "simulated": False, "entry": entry}
+
+@app.get("/standby/status")
+def standby_status():
+    """Return current standby state for all nodes."""
+    return {"ok": True, "standby": _STANDBY}
 
 @app.websocket("/stream")
 async def stream(websocket: WebSocket):
@@ -87,5 +129,7 @@ async def stream(websocket: WebSocket):
         }
         while True:
             await websocket.receive_text()
-    except: pass
-    finally: CLIENTS.pop(websocket, None)
+    except:
+        pass
+    finally:
+        CLIENTS.pop(websocket, None)
