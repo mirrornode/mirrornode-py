@@ -4,13 +4,18 @@
 .PHONY: preflight keys env first-boot docker-build fly-deploy install dev test clean
 
 preflight:  ## Run THOTH pre-flight verification
-	poetry run python3 thoth_preflight.py
+	poetry run python3 thoth_preflight.py $(CURDIR)
 
 keys:  ## Generate Ed25519 keypair into Oracle Vault
 	poetry run python3 scripts/generate_keys.py
 
 env:  ## Copy .env.example to .env (edit before use)
-	@[ -f .env ] && echo ".env already exists, skipping." || cp .env.example .env && echo ".env created from template."
+	@if [ -f .env ]; then \
+		echo ".env already exists, skipping."; \
+	else \
+		cp .env.example .env; \
+		echo ".env created from template."; \
+	fi
 
 first-boot:  ## Full first-run sequence: env + keys + install + preflight
 	$(MAKE) env
