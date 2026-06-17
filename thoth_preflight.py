@@ -156,12 +156,17 @@ class ThothPreflight:
         self.log_header("SECTION 2: DEVELOPMENT ENVIRONMENT & TOOLCHAIN")
         section_results = {}
         
-        # Check 2.1 - Python 3.12+
+        # Check 2.1 - Python 3.12+ (accept any 3.12, 3.13, 3.14, or higher)
         python_version, _, rc = self.run_command("python3 --version")
-        if rc == 0 and ("3.12" in python_version or "3.13" in python_version):
-            status = "PASS"
-        else:
-            status = "FAIL"
+        version_ok = False
+        if rc == 0 and python_version:
+            try:
+                ver_str = python_version.split()[1]  # e.g. "3.14.3"
+                major, minor = int(ver_str.split(".")[0]), int(ver_str.split(".")[1])
+                version_ok = (major == 3 and minor >= 12) or major > 3
+            except Exception:
+                pass
+        status = "PASS" if version_ok else "FAIL"
         section_results["2.1"] = self.log_check(
             "2.1 - Python 3.12+ Installed",
             status,
@@ -236,7 +241,6 @@ class ThothPreflight:
         vault_subdirs = ["keys", "logs", "tmp"]
         found_subdirs = []
         
-        # Create vault if it doesn't exist
         for subdir in vault_subdirs:
             subdir_path = vault_path / subdir
             if not subdir_path.exists():
@@ -256,14 +260,14 @@ class ThothPreflight:
             f"Subdirs: {', '.join(found_subdirs)}"
         )
         
-        # Check 3.2 - Ed25519 Key Generation Utility
-        keygen_path = self.base_path / "scripts" / "generate_keys.py"
-        if keygen_path.exists():
-            status = "PASS"
-            message = "Key generation utility found"
-        else:
-            status = "WARN"
-            message = "Key generation utility not yet present (will be added)"
+        # Check 3.2 - Ed25519 Key Generation Utility (accepts either filename)
+        keygen_paths = [
+            self.base_path / "scripts" / "generate_keys.py",
+            self.base_path / "scripts" / "gen_ed25519_key.py",
+        ]
+        keygen_found = any(p.exists() for p in keygen_paths)
+        status = "PASS" if keygen_found else "WARN"
+        message = "Key generation utility found" if keygen_found else "Key generation utility not yet present (will be added)"
         section_results["3.2"] = self.log_check("3.2 - Ed25519 Key Generation Utility", status, message)
         
         # Check 3.3 - Cryptographic Libraries
@@ -313,9 +317,14 @@ class ThothPreflight:
         pyproject_path = self.base_path / "pyproject.toml"
         if pyproject_path.exists():
             try:
-                import tomli
-                with open(pyproject_path, 'rb') as f:
-                    tomli.load(f)
+                try:
+                    import tomllib  # Python 3.11+ stdlib
+                    with open(pyproject_path, 'rb') as f:
+                        tomllib.load(f)
+                except ImportError:
+                    import tomli
+                    with open(pyproject_path, 'rb') as f:
+                        tomli.load(f)
                 status = "PASS"
                 message = "pyproject.toml is valid TOML"
             except Exception as e:
@@ -385,10 +394,11 @@ class ThothPreflight:
         self.log_header("SECTION 5: MULTI-NODE LATTICE READINESS")
         section_results = {}
         
-        # Check 5.1 - Bridge Config Template
+        # Check 5.1 - Bridge Config Template (accept .env.example, oracle.env, or yaml template)
         env_paths = [
             self.base_path / "oracle.env",
             self.base_path / ".env.example",
+            self.base_path / "core" / "bridge" / "config_template.yaml",
             Path("~/.mirrornode/oracle.env").expanduser()
         ]
         env_found = any(p.exists() for p in env_paths)
@@ -450,7 +460,7 @@ class ThothPreflight:
         self.log_header("SECTION 6: DEPLOYMENT READINESS")
         section_results = {}
         
-        # Check 6.1 - Makefile
+        # Check 6.1 - Makefile with canonical targets
         makefile_path = self.base_path / "Makefile"
         makefile_targets = []
         if makefile_path.exists():
@@ -460,7 +470,7 @@ class ThothPreflight:
                     for line in content.split('\n'):
                         if ':' in line and not line.startswith('\t'):
                             target = line.split(':')[0].strip()
-                            if target:
+                            if target and not target.startswith('#'):
                                 makefile_targets.append(target)
             except:
                 pass
@@ -569,10 +579,9 @@ class ThothPreflight:
             print(f"{GREEN}All hard requirements satisfied.{RESET}\n")
             print(f"Next Actions:")
             print(f"  1. cd {self.base_path}")
-            print(f"  2. poetry install")
-            print(f"  3. poetry run pytest")
-            print(f"  4. poetry run python3 scripts/generate_keys.py")
-            print(f"  5. poetry run python3 scripts/run_bridge.sh\n")
+            print(f"  2. make first-boot")
+            print(f"  3. make dev")
+            print(f"  4. make test\n")
             print(f"{GREEN}All systems go. Ready for Track Alpha deployment.{RESET}\n")
             self.results["overall_status"] = "PRE-FLIGHT COMPLETE"
         else:
