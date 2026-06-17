@@ -1,0 +1,31 @@
+# MIRRORNODE :: Bridge Configuration Template (5.1)
+# Copy to config.yaml and populate secrets via environment or vault.
+
+bridge:
+  node_id: "hermes-v0.2.0"
+  env: "local"  # local | staging | production
+
+lattice_nodes:
+  - name: numeraethe
+    endpoint: "http://localhost:8001"
+    enabled: true
+  - name: merlin
+    endpoint: "http://localhost:8002"
+    enabled: true
+  - name: perplexity
+    endpoint: "https://api.perplexity.ai"
+    enabled: true
+  - name: claude
+    endpoint: "https://api.anthropic.com"
+    enabled: true
+  - name: trism
+    endpoint: "http://localhost:8005"
+    enabled: true
+
+crypto:
+  key_path: "~/.mirrornode/oracle/keys/mirrornode_node.pem"
+  algorithm: "ed25519"
+
+logging:
+  level: "INFO"
+  log_dir: "~/.mirrornode/oracle/logs"
