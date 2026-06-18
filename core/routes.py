@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from core.registry import register_agent, get_agents, emit_event, subscribe
-import json
+import asyncio, json
 
 router = APIRouter()
 
