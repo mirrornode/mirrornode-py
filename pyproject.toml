@@ -5,6 +5,8 @@ description = "MIRRORNODE Python Bridge - FastAPI event hub"
 authors = ["Mirrornode <team@mirrornode.dev>"]
 packages = [
     { include = "core" },
+    { include = "mirrornode" },
+    { include = "kernel" },
 ]
 
 [tool.poetry.dependencies]
