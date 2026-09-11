@@ -8,7 +8,7 @@ from __future__ import annotations
 import functools
 from typing import Any, Dict, List, Optional, Set
 
-from core.registry.cache import get_registry
+from core.registry_cache import get_registry
 
 # Maximum recursion depth before aborting traversal
 MAX_DEPTH = 32
