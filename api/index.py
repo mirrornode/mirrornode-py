@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from core.registry.cache import get_registry, NUMERAETHE_PRIMITIVES
+from core.registry_cache import get_registry, NUMAEREATHE_PRIMITIVES as NUMERAETHE_PRIMITIVES
 from core.engines.fusion import synthesize_lattice, compute_lattice_metrics, processGlyph
 
 # ========================
